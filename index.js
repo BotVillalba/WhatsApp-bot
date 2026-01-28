@@ -14,7 +14,6 @@ async function startBot() {
     printQRInTerminal: false
   });
 
-  // 📲 Código de 8 dígitos (solo la primera vez)
   if (!state.creds.registered) {
     const phoneNumber = process.env.PHONE_NUMBER;
     const code = await sock.requestPairingCode(phoneNumber);
