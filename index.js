@@ -4,11 +4,11 @@ const {
   useMultiFileAuthState,
   fetchLatestBaileysVersion
 } = require('@whiskeysockets/baileys')
+
 const Pino = require('pino')
 
 async function startBot() {
   const { state, saveCreds } = await useMultiFileAuthState('./session')
-
   const { version } = await fetchLatestBaileysVersion()
 
   const sock = makeWASocket({
@@ -21,9 +21,8 @@ async function startBot() {
 
   sock.ev.on('creds.update', saveCreds)
 
-  // 👉 FORZAR CÓDIGO DE VINCULACIÓN
   if (!sock.authState.creds.registered) {
-    const phoneNumber = '595993633752' // ← TU NÚMERO CON CÓDIGO PAÍS, SIN +
+    const phoneNumber = '595993633752'// TU NÚMERO SIN +
     setTimeout(async () => {
       const code = await sock.requestPairingCode(phoneNumber)
       console.log('📲 CÓDIGO DE VINCULACIÓN:', code)
@@ -40,7 +39,7 @@ async function startBot() {
     }
 
     if (connection === 'open') {
-      console.log('✅ BOT CONECTADO A WHATSAPP')
+      console.log('✅ BOT CONECTADO CORRECTAMENTE')
     }
   })
 }
