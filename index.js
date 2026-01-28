@@ -28,6 +28,18 @@ async function iniciarBot() {
     printQRInTerminal: false // USAMOS CÓDIGO, NO QR
   });
 
+  // 👇 CAMBIÁ ESTE NÚMERO POR EL TUYO (con código país, sin + ni espacios)
+const numero = "595993633752";
+
+setTimeout(async () => {
+  try {
+    const code = await sock.requestPairingCode(numero);
+    console.log("📲 CÓDIGO DE VINCULACIÓN:", code);
+  } catch (e) {
+    console.log("❌ Error al generar código:", e);
+  }
+}, 3000);
+
   sock.ev.on("creds.update", saveCreds);
 
   sock.ev.on("connection.update", (update) => {
