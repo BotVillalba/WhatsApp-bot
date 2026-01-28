@@ -1,72 +1,48 @@
-import baileys from "@whiskeysockets/baileys";
-import Pino from "pino";
-import crypto from "crypto";
-
 const {
   default: makeWASocket,
+  DisconnectReason,
   useMultiFileAuthState,
-  DisconnectReason
-} = baileys;
+  fetchLatestBaileysVersion
+} = require('@whiskeysockets/baileys')
+const Pino = require('pino')
 
-// Fix crypto en Railway
-global.crypto = crypto;
+async function startBot() {
+  const { state, saveCreds } = await useMultiFileAuthState('./session')
 
-// Evitar loops de código
-let pairingRequested = false;
-
-async function iniciarBot() {
-  const { state, saveCreds } = await useMultiFileAuthState("./session");
+  const { version } = await fetchLatestBaileysVersion()
 
   const sock = makeWASocket({
+    version,
+    logger: Pino({ level: 'silent' }),
+    printQRInTerminal: false,
     auth: state,
-    logger: Pino({ level: "silent" }),
-    browser: ["Railway", "Chrome", "1.0.0"]
-  });
+    browser: ['★VĮŁŁĄŁƁĄ★ bot', 'Chrome', '1.0.0']
+  })
 
-  sock.ev.on("creds.update", saveCreds);
+  sock.ev.on('creds.update', saveCreds)
 
-  // 📲 Código de vinculación (solo 1 vez)
-  if (!state.creds.registered && !pairingRequested) {
-    pairingRequested = true;
-    const numero = "595993633752"; // TU NÚMERO sin +
-
-    try {
-      const code = await sock.requestPairingCode(numero);
-      console.log("📲 CÓDIGO DE VINCULACIÓN:", code);
-      console.log("⏳ Ingresalo en WhatsApp (tenés ~1 min)");
-    } catch (e) {
-      console.log("❌ Error generando código:", e.message);
-    }
+  // 👉 FORZAR CÓDIGO DE VINCULACIÓN
+  if (!sock.authState.creds.registered) {
+    const phoneNumber = '595993633752' // ← TU NÚMERO CON CÓDIGO PAÍS, SIN +
+    setTimeout(async () => {
+      const code = await sock.requestPairingCode(phoneNumber)
+      console.log('📲 CÓDIGO DE VINCULACIÓN:', code)
+    }, 3000)
   }
 
-  sock.ev.on("connection.update", (update) => {
-    const { connection, lastDisconnect } = update;
+  sock.ev.on('connection.update', (update) => {
+    const { connection, lastDisconnect } = update
 
-    if (connection === "open") {
-      console.log("✅ BOT CONECTADO A WHATSAPP");
+    if (connection === 'close') {
+      const shouldReconnect =
+        lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut
+      if (shouldReconnect) startBot()
     }
 
-    if (connection === "close") {
-      const reason = lastDisconnect?.error?.output?.statusCode;
-
-      if (reason !== DisconnectReason.loggedOut) {
-        console.log("🔄 Reconectando...");
-        iniciarBot();
-      } else {
-        console.log("❌ Sesión cerrada, necesitás volver a vincular");
-        pairingRequested = false;
-      }
+    if (connection === 'open') {
+      console.log('✅ BOT CONECTADO A WHATSAPP')
     }
-  });
-
-  sock.ev.on("messages.upsert", async ({ messages }) => {
-    const msg = messages[0];
-    if (!msg?.message || msg.key.fromMe) return;
-
-    await sock.sendMessage(msg.key.remoteJid, {
-      text: "🤖 ★VĮŁŁĄŁƁĄ★ bot activo"
-    });
-  });
+  })
 }
 
-iniciarBot();
+startBot()
