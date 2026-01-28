@@ -16,7 +16,7 @@ async function startBot() {
 
   // 🔢 Código de 8 dígitos (solo la primera vez)
   if (!state.creds.registered) {
-    const phoneNumber = "595993633752"; // 👈 TU NÚMERO CON CÓDIGO PAÍS
+    const phoneNumber = 595993633752; // 👈 TU NÚMERO CON CÓDIGO PAÍS
     const code = await sock.requestPairingCode(phoneNumber);
     console.log("📲 CÓDIGO DE VINCULACIÓN:", code);
   }
