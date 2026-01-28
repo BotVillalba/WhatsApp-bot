@@ -1,51 +1,43 @@
-const crypto = require('crypto')
-global.crypto = crypto.webcrypto
-
-const {
-  default: makeWASocket,
-  DisconnectReason,
+import makeWASocket, {
   useMultiFileAuthState,
+  DisconnectReason,
   fetchLatestBaileysVersion
-} = require('@whiskeysockets/baileys')
+} from '@whiskeysockets/baileys'
+import Pino from 'pino'
+import express from 'express'
+import fs from 'fs'
 
-const Pino = require('pino')
+const app = express()
+const PORT = process.env.PORT || 3000
 
-let pairingRequested = false
+// Servidor web para que Railway no mate el proceso
+app.get('/', (req, res) => {
+  res.send('🤖 WhatsApp Bot activo')
+})
 
-async function startBot () {
+app.listen(PORT, () => {
+  console.log(`🌐 Web server activo en puerto ${PORT}`)
+})
+
+async function startBot() {
   const { state, saveCreds } = await useMultiFileAuthState('./session')
+
   const { version } = await fetchLatestBaileysVersion()
 
   const sock = makeWASocket({
     version,
     auth: state,
     logger: Pino({ level: 'silent' }),
-    printQRInTerminal: false,
-    browser: ['★VĮŁŁĄŁƁĄ★ bot', 'Chrome', '1.0.0']
+    printQRInTerminal: false
   })
 
   sock.ev.on('creds.update', saveCreds)
 
-  // ⏳ PEDIR CÓDIGO AL INICIAR
-  if (!sock.authState.creds.registered && !pairingRequested) {
-    pairingRequested = true
-
-    setTimeout(async () => {
-      try {
-        const phoneNumber = '595993633752' // 👈 TU NÚMERO SIN +
-        const code = await sock.requestPairingCode(phoneNumber)
-        console.log('📲 CÓDIGO DE VINCULACIÓN:', code)
-      } catch (err) {
-        console.log('❌ Error al generar código:', err.message)
-      }
-    }, 4000)
-  }
-
   sock.ev.on('connection.update', (update) => {
-    const { connection, lastDisconnect } = update
+    const { connection, lastDisconnect, pairingCode } = update
 
-    if (connection === 'open') {
-      console.log('✅ BOT CONECTADO CORRECTAMENTE')
+    if (pairingCode) {
+      console.log(`📲 CÓDIGO DE VINCULACIÓN: ${pairingCode}`)
     }
 
     if (connection === 'close') {
@@ -55,6 +47,26 @@ async function startBot () {
       console.log('⚠️ Conexión cerrada. Reintentando:', shouldReconnect)
 
       if (shouldReconnect) startBot()
+    }
+
+    if (connection === 'open') {
+      console.log('✅ WhatsApp conectado correctamente')
+    }
+  })
+
+  sock.ev.on('messages.upsert', async ({ messages }) => {
+    const msg = messages[0]
+    if (!msg.message || msg.key.fromMe) return
+
+    const texto =
+      msg.message.conversation ||
+      msg.message.extendedTextMessage?.text ||
+      ''
+
+    if (texto.toLowerCase() === 'menu') {
+      await sock.sendMessage(msg.key.remoteJid, {
+        text: `★VĮŁŁĄŁƁĄ★ bot\n\n✅ Bot conectado correctamente\nEscribí *menu* para ver opciones`
+      })
     }
   })
 }
