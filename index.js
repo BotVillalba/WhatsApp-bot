@@ -1,22 +1,23 @@
 // ===============================
-// IMPORTS
+// IMPORTS (COMMONJS)
 // ===============================
-import makeWASocket, {
+const {
+  default: makeWASocket,
   DisconnectReason,
   useMultiFileAuthState
-} from "@whiskeysockets/baileys";
+} = require("@whiskeysockets/baileys");
 
-import express from "express";
-import pino from "pino";
-import crypto from "crypto";
+const express = require("express");
+const pino = require("pino");
+const crypto = require("crypto");
 
 // ===============================
 // CONFIG
 // ===============================
 const PORT = process.env.PORT || 8080;
-const NUMERO_WHATSAPP = "595993633752"; // ⬅️ TU NÚMERO (con código país, sin +)
+const NUMERO_WHATSAPP = "595993633752"; // ⬅️ TU NÚMERO SIN +
 
-// bandera para generar UN SOLO código
+// generar UN SOLO código
 let codigoGenerado = false;
 
 // ===============================
@@ -43,9 +44,6 @@ async function iniciarBot() {
     browser: ["VillalbaBot", "Chrome", "1.0"]
   });
 
-  // ===============================
-  // EVENTOS
-  // ===============================
   sock.ev.on("creds.update", saveCreds);
 
   sock.ev.on("connection.update", async (update) => {
@@ -58,21 +56,19 @@ async function iniciarBot() {
 
     if (connection === "close") {
       const reason = lastDisconnect?.error?.output?.statusCode;
-
       console.log("⚠️ Conexión cerrada. Razón:", reason);
 
-      // ❌ NO reconectar si ya se generó el código
       if (!codigoGenerado && reason !== DisconnectReason.loggedOut) {
         console.log("🔁 Reintentando conexión...");
         iniciarBot();
       } else {
-        console.log("🛑 Esperando acción manual (no se reintenta)");
+        console.log("🛑 Esperando acción manual");
       }
     }
   });
 
   // ===============================
-  // GENERAR CÓDIGO (UNA SOLA VEZ)
+  // CÓDIGO DE VINCULACIÓN (UNA VEZ)
   // ===============================
   setTimeout(async () => {
     if (codigoGenerado) return;
@@ -81,7 +77,7 @@ async function iniciarBot() {
       const code = await sock.requestPairingCode(NUMERO_WHATSAPP);
       codigoGenerado = true;
       console.log("📱 CÓDIGO DE VINCULACIÓN (ÚNICO):", code);
-      console.log("👉 Ingrésalo en WhatsApp > Dispositivos vinculados");
+      console.log("👉 WhatsApp > Dispositivos vinculados");
     } catch (err) {
       console.error("❌ Error al generar código:", err.message);
     }
