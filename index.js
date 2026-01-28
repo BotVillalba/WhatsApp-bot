@@ -1,8 +1,12 @@
+import crypto from "crypto";
+global.crypto = crypto.webcrypto;
+
 import {
   makeWASocket,
   useMultiFileAuthState,
   DisconnectReason
 } from "@whiskeysockets/baileys";
+
 import Pino from "pino";
 import { Boom } from "@hapi/boom";
 
