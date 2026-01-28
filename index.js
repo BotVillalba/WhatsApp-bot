@@ -1,16 +1,18 @@
-import makeWASocket, {
-  useMultiFileAuthState,
-  DisconnectReason
-} from "@whiskeysockets/baileys";
-
+import baileys from "@whiskeysockets/baileys";
 import Pino from "pino";
 import crypto from "crypto";
 
-// 🔑 Necesario para evitar el error: crypto is not defined
+const {
+  default: makeWASocket,
+  useMultiFileAuthState,
+  DisconnectReason
+} = baileys;
+
+// Fix crypto en Railway
 global.crypto = crypto;
 
-// 🔒 Control para pedir el código SOLO UNA VEZ
-global.pairingRequested = false;
+// Evitar loops de código
+let pairingRequested = false;
 
 async function iniciarBot() {
   const { state, saveCreds } = await useMultiFileAuthState("./session");
@@ -21,24 +23,22 @@ async function iniciarBot() {
     browser: ["Railway", "Chrome", "1.0.0"]
   });
 
-  // 💾 Guardar sesión
   sock.ev.on("creds.update", saveCreds);
 
-  // 📲 PEDIR CÓDIGO SOLO UNA VEZ
-  if (!state.creds.registered && !global.pairingRequested) {
-    global.pairingRequested = true;
+  // 📲 Código de vinculación (solo 1 vez)
+  if (!state.creds.registered && !pairingRequested) {
+    pairingRequested = true;
+    const numero = "595993633752"; // TU NÚMERO sin +
 
-    const numero = "595993633752"; // 👈 TU NÚMERO SIN +
     try {
       const code = await sock.requestPairingCode(numero);
       console.log("📲 CÓDIGO DE VINCULACIÓN:", code);
-      console.log("⏳ Tenés ~60 segundos para ingresarlo en WhatsApp");
-    } catch (err) {
-      console.log("❌ Error al generar código:", err.message);
+      console.log("⏳ Ingresalo en WhatsApp (tenés ~1 min)");
+    } catch (e) {
+      console.log("❌ Error generando código:", e.message);
     }
   }
 
-  // 🔌 ESTADO DE CONEXIÓN
   sock.ev.on("connection.update", (update) => {
     const { connection, lastDisconnect } = update;
 
@@ -50,22 +50,21 @@ async function iniciarBot() {
       const reason = lastDisconnect?.error?.output?.statusCode;
 
       if (reason !== DisconnectReason.loggedOut) {
-        console.log("🔄 Conexión cerrada, reintentando...");
+        console.log("🔄 Reconectando...");
         iniciarBot();
       } else {
-        console.log("❌ Sesión cerrada. Debés volver a vincular el número.");
-        global.pairingRequested = false;
+        console.log("❌ Sesión cerrada, necesitás volver a vincular");
+        pairingRequested = false;
       }
     }
   });
 
-  // 💬 RESPUESTA SIMPLE DE PRUEBA
   sock.ev.on("messages.upsert", async ({ messages }) => {
     const msg = messages[0];
-    if (!msg.message || msg.key.fromMe) return;
+    if (!msg?.message || msg.key.fromMe) return;
 
     await sock.sendMessage(msg.key.remoteJid, {
-      text: "🤖 Bot activo correctamente"
+      text: "🤖 ★VĮŁŁĄŁƁĄ★ bot activo"
     });
   });
 }
