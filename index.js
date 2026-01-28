@@ -1,3 +1,6 @@
+const crypto = require("crypto");
+global.crypto = crypto;
+
 const express = require("express");
 const pino = require("pino");
 const crypto = require("crypto"); // ✅ SOLUCIÓN AL ERROR
