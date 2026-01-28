@@ -1,6 +1,10 @@
-import makeWASocket, { useMultiFileAuthState } from "@whiskeysockets/baileys";
-import { Boom } from "@hapi/boom";
+import {
+  makeWASocket,
+  useMultiFileAuthState,
+  DisconnectReason
+} from "@whiskeysockets/baileys";
 import Pino from "pino";
+import { Boom } from "@hapi/boom";
 
 async function iniciarBot() {
   const { state, saveCreds } = await useMultiFileAuthState("./session");
@@ -11,9 +15,9 @@ async function iniciarBot() {
     browser: ["Railway", "Chrome", "1.0.0"]
   });
 
-  // 👉 GENERAR CÓDIGO DE VINCULACIÓN
+  // 🔑 CÓDIGO DE VINCULACIÓN (SIN QR)
   if (!state.creds.registered) {
-    const numero = "595993633752"; // TU NÚMERO con código país, SIN +
+    const numero = "595993633752"; // 👈 TU NÚMERO con código país, SIN +
     const code = await sock.requestPairingCode(numero);
     console.log("📲 Código de vinculación:", code);
   }
@@ -28,14 +32,14 @@ async function iniciarBot() {
     }
 
     if (connection === "close") {
-      const reason =
+      const statusCode =
         lastDisconnect?.error instanceof Boom
           ? lastDisconnect.error.output.statusCode
           : null;
 
-      if (reason !== 401) {
-        console.log("📴 Conexión cerrada, reconectando...");
-        setTimeout(() => iniciarBot(), 3000);
+      if (statusCode !== DisconnectReason.loggedOut) {
+        console.log("🔄 Conexión cerrada, reconectando...");
+        setTimeout(iniciarBot, 3000);
       } else {
         console.log("❌ Sesión cerrada. Debes volver a vincular el número.");
       }
