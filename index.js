@@ -1,12 +1,10 @@
-import baileys from "@whiskeysockets/baileys";
-import express from "express";
-import pino from "pino";
-
+const express = require("express");
+const pino = require("pino");
 const {
   default: makeWASocket,
   useMultiFileAuthState,
   DisconnectReason
-} = baileys;
+} = require("@whiskeysockets/baileys");
 
 // ===== SERVIDOR WEB =====
 const app = express();
@@ -30,22 +28,21 @@ async function iniciarBot() {
     printQRInTerminal: false
   });
 
-  const NUMERO = "595993633752"; // 👈 TU NÚMERO CON CÓDIGO PAÍS
+  const NUMERO = "595993633752"; // 👈 TU NÚMERO
   let codigoGenerado = false;
 
   sock.ev.on("connection.update", (update) => {
-    const { connection, lastDisconnect } = update;
+    const { connection } = update;
 
     if (connection === "open") {
       console.log("✅ WhatsApp conectado correctamente");
     }
 
     if (connection === "close") {
-      console.log("⚠️ Conexión cerrada. No se reintentará.");
+      console.log("⚠️ Conexión cerrada (no se reintentará)");
     }
   });
 
-  // 🔐 GENERAR UN SOLO CÓDIGO
   setTimeout(async () => {
     if (codigoGenerado) return;
 
@@ -59,7 +56,7 @@ async function iniciarBot() {
     } catch (err) {
       console.log("❌ Error al generar código:", err.message);
     }
-  }, 3000);
+  }, 4000);
 
   sock.ev.on("creds.update", saveCreds);
 }
