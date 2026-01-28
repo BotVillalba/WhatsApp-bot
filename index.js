@@ -1,3 +1,6 @@
+// 🔐 FIX OBLIGATORIO PARA NODE 18
+global.crypto = require("crypto");
+
 const express = require("express");
 const {
   default: makeWASocket,
@@ -36,14 +39,11 @@ async function iniciarBot() {
     if (connection === "close") {
       const reason = lastDisconnect?.error?.output?.statusCode;
       console.log("⚠️ Conexión cerrada. Razón:", reason);
-
-      if (reason !== DisconnectReason.loggedOut) {
-        console.log("🔄 Esperando vinculación manual...");
-      }
+      console.log("⏳ Esperando vinculación manual...");
     }
   });
 
-  // 🔐 GENERAR UN SOLO CÓDIGO
+  // 🔐 GENERAR SOLO UN CÓDIGO
   if (!state.creds.registered) {
     setTimeout(async () => {
       try {
