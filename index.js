@@ -14,10 +14,11 @@ async function startBot() {
     printQRInTerminal: false
   });
 
+  // 🔢 Código de 8 dígitos (solo la primera vez)
   if (!state.creds.registered) {
-    const phoneNumber = process.env.PHONE_NUMBER;
+    const phoneNumber = "595993633752"; // 👉 TU NÚMERO CON CÓDIGO PAÍS
     const code = await sock.requestPairingCode(phoneNumber);
-    console.log("📲 CÓDIGO DE VINCULACIÓN:", code);
+    console.log("🔐 CÓDIGO DE VINCULACIÓN:", code);
   }
 
   sock.ev.on("creds.update", saveCreds);
@@ -33,7 +34,25 @@ async function startBot() {
       const reason = lastDisconnect?.error?.output?.statusCode;
       if (reason !== DisconnectReason.loggedOut) {
         startBot();
+      } else {
+        console.log("❌ Sesión cerrada. Hay que vincular de nuevo.");
       }
+    }
+  });
+
+  // 🤖 BOT SIMPLE (por ahora)
+  sock.ev.on("messages.upsert", async ({ messages }) => {
+    const msg = messages[0];
+    if (!msg.message || msg.key.fromMe) return;
+
+    const text =
+      msg.message.conversation ||
+      msg.message.extendedTextMessage?.text;
+
+    if (text?.toLowerCase() === "hola") {
+      await sock.sendMessage(msg.key.remoteJid, {
+        text: "👋 Hola! Bot conectado correctamente."
+      });
     }
   });
 }
