@@ -1,39 +1,54 @@
-global.crypto = require("crypto");
+import makeWASocket, {
+  useMultiFileAuthState,
+  DisconnectReason
+} from "@whiskeysockets/baileys";
+import P from "pino";
 
-const express = require("express");
-const {
-  default: makeWASocket,
-  useMultiFileAuthState
-} = require("@whiskeysockets/baileys");
-const pino = require("pino");
-
-const app = express();
-const PORT = process.env.PORT || 8080;
-
-app.get("/", (_, res) => res.send("WhatsApp bot activo"));
-app.listen(PORT, () =>
-  console.log("🌐 Servidor web activo en puerto", PORT)
-);
-
-async function iniciarBot() {
-  const { state, saveCreds } = await useMultiFileAuthState("./session");
+async function startBot() {
+  const { state, saveCreds } = await useMultiFileAuthState("./auth");
 
   const sock = makeWASocket({
     auth: state,
-    logger: pino({ level: "silent" }),
-    printQRInTerminal: true // 👈 IMPORTANTE
+    logger: P({ level: "silent" }),
+    printQRInTerminal: false
   });
+
+  // 🔢 Generar código de 8 dígitos
+  if (!sock.authState.creds.registered) {
+    const phoneNumber = "595993633752"; // ← TU NÚMERO CON CÓDIGO PAÍS
+    const code = await sock.requestPairingCode(phoneNumber);
+    console.log("📲 Código de vinculación:", code);
+  }
 
   sock.ev.on("creds.update", saveCreds);
 
-  sock.ev.on("connection.update", ({ connection }) => {
+  sock.ev.on("connection.update", (update) => {
+    const { connection, lastDisconnect } = update;
+
     if (connection === "open") {
-      console.log("✅ WhatsApp conectado correctamente");
+      console.log("✅ WhatsApp vinculado correctamente");
     }
+
     if (connection === "close") {
-      console.log("⚠️ Conexión cerrada, esperando QR...");
+      const reason = lastDisconnect?.error?.output?.statusCode;
+      if (reason !== DisconnectReason.loggedOut) {
+        startBot();
+      }
+    }
+  });
+
+  // 🤖 Bot básico (responde hola)
+  sock.ev.on("messages.upsert", async ({ messages }) => {
+    const msg = messages[0];
+    if (!msg.message || msg.key.fromMe) return;
+
+    const text = msg.message.conversation;
+    if (text?.toLowerCase() === "hola") {
+      await sock.sendMessage(msg.key.remoteJid, {
+        text: "👋 Hola, soy un bot simple"
+      });
     }
   });
 }
 
-iniciarBot();
+startBot();
