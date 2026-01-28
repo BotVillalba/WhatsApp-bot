@@ -1,8 +1,6 @@
-// ====== FIX CRYPTO PARA NODE 18+ ======
 const crypto = require('crypto')
 global.crypto = crypto.webcrypto
 
-// ====== IMPORTS ======
 const {
   default: makeWASocket,
   DisconnectReason,
@@ -12,7 +10,8 @@ const {
 
 const Pino = require('pino')
 
-// ====== BOT ======
+let pairingRequested = false
+
 async function startBot () {
   const { state, saveCreds } = await useMultiFileAuthState('./session')
   const { version } = await fetchLatestBaileysVersion()
@@ -25,38 +24,39 @@ async function startBot () {
     browser: ['★VĮŁŁĄŁƁĄ★ bot', 'Chrome', '1.0.0']
   })
 
-  // ====== GUARDAR SESIÓN ======
   sock.ev.on('creds.update', saveCreds)
 
-  // ====== CONEXIÓN ======
-  sock.ev.on('connection.update', async (update) => {
-    const { connection, lastDisconnect } = update
+  // ⏳ PEDIR CÓDIGO AL INICIAR
+  if (!sock.authState.creds.registered && !pairingRequested) {
+    pairingRequested = true
 
-    // ---- CONECTADO ----
-    if (connection === 'open') {
-      console.log('✅ BOT CONECTADO')
-
-      // GENERAR CÓDIGO SOLO SI NO ESTÁ REGISTRADO
-      if (!sock.authState.creds.registered) {
+    setTimeout(async () => {
+      try {
         const phoneNumber = '595993633752' // 👈 TU NÚMERO SIN +
         const code = await sock.requestPairingCode(phoneNumber)
         console.log('📲 CÓDIGO DE VINCULACIÓN:', code)
+      } catch (err) {
+        console.log('❌ Error al generar código:', err.message)
       }
+    }, 4000)
+  }
+
+  sock.ev.on('connection.update', (update) => {
+    const { connection, lastDisconnect } = update
+
+    if (connection === 'open') {
+      console.log('✅ BOT CONECTADO CORRECTAMENTE')
     }
 
-    // ---- DESCONECTADO ----
     if (connection === 'close') {
       const shouldReconnect =
         lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut
 
       console.log('⚠️ Conexión cerrada. Reintentando:', shouldReconnect)
 
-      if (shouldReconnect) {
-        startBot()
-      }
+      if (shouldReconnect) startBot()
     }
   })
 }
 
-// ====== INICIAR BOT ======
 startBot()
