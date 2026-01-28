@@ -1,4 +1,7 @@
-import makeWASocket, { useMultiFileAuthState } from "@whiskeysockets/baileys";
+import makeWASocket, {
+  useMultiFileAuthState,
+  DisconnectReason
+} from "@whiskeysockets/baileys";
 import Pino from "pino";
 
 async function iniciarBot() {
@@ -6,22 +9,32 @@ async function iniciarBot() {
 
   const sock = makeWASocket({
     auth: state,
-    printQRInTerminal: true, // 👈 ESTO ES CLAVE
     logger: Pino({ level: "silent" })
   });
 
   sock.ev.on("creds.update", saveCreds);
 
   sock.ev.on("connection.update", (update) => {
-    const { connection } = update;
+    const { connection, qr, lastDisconnect } = update;
+
+    if (qr) {
+      console.log("📱 ESCANEÁ ESTE QR CON WHATSAPP:");
+      console.log(qr);
+    }
 
     if (connection === "open") {
       console.log("✅ BOT CONECTADO A WHATSAPP");
     }
 
     if (connection === "close") {
-      console.log("❌ CONEXIÓN CERRADA, REINICIANDO...");
-      iniciarBot();
+      const reason =
+        lastDisconnect?.error?.output?.statusCode;
+
+      console.log("❌ CONEXIÓN CERRADA, REINICIANDO...", reason);
+
+      if (reason !== DisconnectReason.loggedOut) {
+        iniciarBot();
+      }
     }
   });
 
