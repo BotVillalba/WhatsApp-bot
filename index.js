@@ -1,27 +1,27 @@
-import makeWASocket, {
+const {
+  default: makeWASocket,
   useMultiFileAuthState,
   DisconnectReason,
   fetchLatestBaileysVersion
-} from '@whiskeysockets/baileys'
-import Pino from 'pino'
-import express from 'express'
-import fs from 'fs'
+} = require('@whiskeysockets/baileys')
+
+const Pino = require('pino')
+const express = require('express')
 
 const app = express()
 const PORT = process.env.PORT || 3000
 
-// Servidor web para que Railway no mate el proceso
+// Servidor web (Railway necesita esto)
 app.get('/', (req, res) => {
   res.send('🤖 WhatsApp Bot activo')
 })
 
 app.listen(PORT, () => {
-  console.log(`🌐 Web server activo en puerto ${PORT}`)
+  console.log(`🌐 Servidor web activo en puerto ${PORT}`)
 })
 
-async function startBot() {
+async function startBot () {
   const { state, saveCreds } = await useMultiFileAuthState('./session')
-
   const { version } = await fetchLatestBaileysVersion()
 
   const sock = makeWASocket({
@@ -37,7 +37,7 @@ async function startBot() {
     const { connection, lastDisconnect, pairingCode } = update
 
     if (pairingCode) {
-      console.log(`📲 CÓDIGO DE VINCULACIÓN: ${pairingCode}`)
+      console.log('📲 CÓDIGO DE VINCULACIÓN:', pairingCode)
     }
 
     if (connection === 'close') {
@@ -65,7 +65,7 @@ async function startBot() {
 
     if (texto.toLowerCase() === 'menu') {
       await sock.sendMessage(msg.key.remoteJid, {
-        text: `★VĮŁŁĄŁƁĄ★ bot\n\n✅ Bot conectado correctamente\nEscribí *menu* para ver opciones`
+        text: '🤖 Bot activo\n\nEscribí *menu* para probar'
       })
     }
   })
