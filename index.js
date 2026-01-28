@@ -1,67 +1,94 @@
-// ===== FIX CRYPTO (UNA SOLA VEZ) =====
-const crypto = require("crypto");
-global.crypto = crypto;
+// ===============================
+// IMPORTS
+// ===============================
+import makeWASocket, {
+  DisconnectReason,
+  useMultiFileAuthState
+} from "@whiskeysockets/baileys";
 
-// ===== DEPENDENCIAS =====
-const {
-  default: makeWASocket,
-  useMultiFileAuthState,
-  DisconnectReason
-} = require("@whiskeysockets/baileys");
+import express from "express";
+import pino from "pino";
+import crypto from "crypto";
 
-const Pino = require("pino");
-const express = require("express");
-
-// ===== SERVIDOR WEB (Railway necesita esto) =====
-const app = express();
+// ===============================
+// CONFIG
+// ===============================
 const PORT = process.env.PORT || 8080;
+const NUMERO_WHATSAPP = "595XXXXXXXXX"; // ⬅️ TU NÚMERO (con código país, sin +)
 
+// bandera para generar UN SOLO código
+let codigoGenerado = false;
+
+// ===============================
+// SERVIDOR WEB (Railway)
+// ===============================
+const app = express();
 app.get("/", (req, res) => {
   res.send("🤖 Bot de WhatsApp activo");
 });
-
 app.listen(PORT, () => {
   console.log("🌐 Servidor web activo en puerto", PORT);
 });
 
-// ===== BOT =====
+// ===============================
+// BOT
+// ===============================
 async function iniciarBot() {
-  const { state, saveCreds } = await useMultiFileAuthState("./session");
+  const { state, saveCreds } = await useMultiFileAuthState("session");
 
   const sock = makeWASocket({
     auth: state,
-    logger: Pino({ level: "silent" }),
-    printQRInTerminal: false
+    logger: pino({ level: "silent" }),
+    printQRInTerminal: false,
+    browser: ["VillalbaBot", "Chrome", "1.0"]
   });
 
+  // ===============================
+  // EVENTOS
+  // ===============================
   sock.ev.on("creds.update", saveCreds);
 
-  sock.ev.on("connection.update", (update) => {
+  sock.ev.on("connection.update", async (update) => {
     const { connection, lastDisconnect } = update;
-
-    if (connection === "close") {
-      const shouldReconnect =
-        lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
-
-      console.log("⚠️ Conexión cerrada", shouldReconnect ? "reconectando..." : "no se reconectará");
-
-      if (shouldReconnect) iniciarBot();
-    }
 
     if (connection === "open") {
       console.log("✅ WhatsApp conectado correctamente");
+      return;
+    }
+
+    if (connection === "close") {
+      const reason = lastDisconnect?.error?.output?.statusCode;
+
+      console.log("⚠️ Conexión cerrada. Razón:", reason);
+
+      // ❌ NO reconectar si ya se generó el código
+      if (!codigoGenerado && reason !== DisconnectReason.loggedOut) {
+        console.log("🔁 Reintentando conexión...");
+        iniciarBot();
+      } else {
+        console.log("🛑 Esperando acción manual (no se reintenta)");
+      }
     }
   });
 
-  // 👉 GENERA UN SOLO CÓDIGO
+  // ===============================
+  // GENERAR CÓDIGO (UNA SOLA VEZ)
+  // ===============================
   setTimeout(async () => {
+    if (codigoGenerado) return;
+
     try {
-      const code = await sock.requestPairingCode("595993633752"); // 👈 tu número con país
-      console.log("📱 CÓDIGO DE VINCULACIÓN:", code);
+      const code = await sock.requestPairingCode(NUMERO_WHATSAPP);
+      codigoGenerado = true;
+      console.log("📱 CÓDIGO DE VINCULACIÓN (ÚNICO):", code);
+      console.log("👉 Ingrésalo en WhatsApp > Dispositivos vinculados");
     } catch (err) {
       console.error("❌ Error al generar código:", err.message);
     }
-  }, 3000);
+  }, 5000);
 }
 
+// ===============================
+// INICIAR
+// ===============================
 iniciarBot();
