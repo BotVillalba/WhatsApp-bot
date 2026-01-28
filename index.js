@@ -1,41 +1,37 @@
-const express = require("express");
-const { default: makeWASocket, useMultiFileAuthState } = require("@whiskeysockets/baileys");
+import makeWASocket, { useMultiFileAuthState } from "@whiskeysockets/baileys";
+import Pino from "pino";
 
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-// servidor keep-alive
-app.get("/", (req, res) => {
-  res.send("🤖 ★VĮŁŁĄŁƁĄ★ BOT activo");
-});
-
-app.listen(PORT, () => {
-  console.log("🌐 Servidor activo en puerto", PORT);
-});
-
-// WhatsApp bot
 async function iniciarBot() {
-  const { state, saveCreds } = await useMultiFileAuthState("auth");
+  const { state, saveCreds } = await useMultiFileAuthState("./session");
 
   const sock = makeWASocket({
     auth: state,
-    printQRInTerminal: true
+    printQRInTerminal: true, // 👈 ESTO ES CLAVE
+    logger: Pino({ level: "silent" })
   });
 
   sock.ev.on("creds.update", saveCreds);
+
+  sock.ev.on("connection.update", (update) => {
+    const { connection } = update;
+
+    if (connection === "open") {
+      console.log("✅ BOT CONECTADO A WHATSAPP");
+    }
+
+    if (connection === "close") {
+      console.log("❌ CONEXIÓN CERRADA, REINICIANDO...");
+      iniciarBot();
+    }
+  });
 
   sock.ev.on("messages.upsert", async ({ messages }) => {
     const msg = messages[0];
     if (!msg.message || msg.key.fromMe) return;
 
-    const texto = msg.message.conversation;
-    const from = msg.key.remoteJid;
-
-    if (texto === "menu") {
-      await sock.sendMessage(from, {
-        text: "★VĮŁŁĄŁƁĄ★ BOT\n\n1️⃣ Info\n2️⃣ Ayuda\n3️⃣ Comandos"
-      });
-    }
+    await sock.sendMessage(msg.key.remoteJid, {
+      text: "🤖 Bot activo"
+    });
   });
 }
 
