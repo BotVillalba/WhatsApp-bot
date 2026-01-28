@@ -1,5 +1,4 @@
-import {
-  default as makeWASocket,
+import makeWASocket, {
   useMultiFileAuthState,
   DisconnectReason
 } from "@whiskeysockets/baileys";
@@ -15,9 +14,9 @@ async function startBot() {
     printQRInTerminal: false
   });
 
-  // 🔢 Código de 8 dígitos (solo una vez)
-  if (!sock.authState.creds.registered) {
-    const phoneNumber = "595993633752"; // ← TU NÚMERO CON CÓDIGO PAÍS
+  // 🔢 Código de 8 dígitos (solo la primera vez)
+  if (!state.creds.registered) {
+    const phoneNumber = "595993633752"; // 👈 TU NÚMERO CON CÓDIGO PAÍS
     const code = await sock.requestPairingCode(phoneNumber);
     console.log("📲 CÓDIGO DE VINCULACIÓN:", code);
   }
@@ -28,7 +27,7 @@ async function startBot() {
     const { connection, lastDisconnect } = update;
 
     if (connection === "open") {
-      console.log("✅ WhatsApp vinculado correctamente");
+      console.log("✅ WhatsApp conectado correctamente");
     }
 
     if (connection === "close") {
@@ -50,7 +49,7 @@ async function startBot() {
 
     if (text?.toLowerCase() === "hola") {
       await sock.sendMessage(msg.key.remoteJid, {
-        text: "👋 Hola, soy un bot simple y ya estoy conectado"
+        text: "👋 Hola, ya estoy activo y funcionando"
       });
     }
   });
