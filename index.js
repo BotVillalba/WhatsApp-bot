@@ -35,7 +35,7 @@ async function iniciarBot() {
 
   // 🔴 CAMBIÁ ESTE NÚMERO POR EL TUYO
   // 👉 Código país + número, SIN + ni espacios
-  const numero = "595XXXXXXXXX";
+  const numero = "595993633752";
 
   // Generar código de vinculación
   setTimeout(async () => {
