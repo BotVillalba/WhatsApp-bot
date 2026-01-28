@@ -1,7 +1,9 @@
-import makeWASocket, {
+import {
+  default as makeWASocket,
   useMultiFileAuthState,
   DisconnectReason
 } from "@whiskeysockets/baileys";
+
 import P from "pino";
 
 async function startBot() {
@@ -13,11 +15,11 @@ async function startBot() {
     printQRInTerminal: false
   });
 
-  // 🔢 Generar código de 8 dígitos
+  // 🔢 Código de 8 dígitos (solo una vez)
   if (!sock.authState.creds.registered) {
     const phoneNumber = "595993633752"; // ← TU NÚMERO CON CÓDIGO PAÍS
     const code = await sock.requestPairingCode(phoneNumber);
-    console.log("📲 Código de vinculación:", code);
+    console.log("📲 CÓDIGO DE VINCULACIÓN:", code);
   }
 
   sock.ev.on("creds.update", saveCreds);
@@ -37,15 +39,18 @@ async function startBot() {
     }
   });
 
-  // 🤖 Bot básico (responde hola)
+  // 🤖 BOT MÁS SIMPLE POSIBLE
   sock.ev.on("messages.upsert", async ({ messages }) => {
     const msg = messages[0];
     if (!msg.message || msg.key.fromMe) return;
 
-    const text = msg.message.conversation;
+    const text =
+      msg.message.conversation ||
+      msg.message.extendedTextMessage?.text;
+
     if (text?.toLowerCase() === "hola") {
       await sock.sendMessage(msg.key.remoteJid, {
-        text: "👋 Hola, soy un bot simple"
+        text: "👋 Hola, soy un bot simple y ya estoy conectado"
       });
     }
   });
