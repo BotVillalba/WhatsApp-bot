@@ -1,18 +1,15 @@
-// 🔐 FIX OBLIGATORIO PARA NODE 18
 global.crypto = require("crypto");
 
 const express = require("express");
 const {
   default: makeWASocket,
-  useMultiFileAuthState,
-  DisconnectReason
+  useMultiFileAuthState
 } = require("@whiskeysockets/baileys");
 const pino = require("pino");
 
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// Mantener Railway vivo
 app.get("/", (_, res) => res.send("WhatsApp bot activo"));
 app.listen(PORT, () =>
   console.log("🌐 Servidor web activo en puerto", PORT)
@@ -24,37 +21,19 @@ async function iniciarBot() {
   const sock = makeWASocket({
     auth: state,
     logger: pino({ level: "silent" }),
-    printQRInTerminal: false
+    printQRInTerminal: true // 👈 IMPORTANTE
   });
 
   sock.ev.on("creds.update", saveCreds);
 
-  sock.ev.on("connection.update", (update) => {
-    const { connection, lastDisconnect } = update;
-
+  sock.ev.on("connection.update", ({ connection }) => {
     if (connection === "open") {
       console.log("✅ WhatsApp conectado correctamente");
     }
-
     if (connection === "close") {
-      const reason = lastDisconnect?.error?.output?.statusCode;
-      console.log("⚠️ Conexión cerrada. Razón:", reason);
-      console.log("⏳ Esperando vinculación manual...");
+      console.log("⚠️ Conexión cerrada, esperando QR...");
     }
   });
-
-  // 🔐 GENERAR SOLO UN CÓDIGO
-  if (!state.creds.registered) {
-    setTimeout(async () => {
-      try {
-        const code = await sock.requestPairingCode("595993633752"); // TU NÚMERO
-        console.log("📱 CÓDIGO DE VINCULACIÓN:", code);
-        console.log("👉 WhatsApp > Dispositivos vinculados");
-      } catch (e) {
-        console.log("❌ Error al generar código:", e.message);
-      }
-    }, 3000);
-  }
 }
 
 iniciarBot();
