@@ -14,7 +14,7 @@ import crypto from "crypto";
 // CONFIG
 // ===============================
 const PORT = process.env.PORT || 8080;
-const NUMERO_WHATSAPP = "595XXXXXXXXX"; // ⬅️ TU NÚMERO (con código país, sin +)
+const NUMERO_WHATSAPP = "595993633752"; // ⬅️ TU NÚMERO (con código país, sin +)
 
 // bandera para generar UN SOLO código
 let codigoGenerado = false;
