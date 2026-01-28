@@ -1,8 +1,8 @@
-// ===== FIX OBLIGATORIO PARA BAILEYS (Railway) =====
+// 🔐 FIX CRYPTO (OBLIGATORIO PARA RAILWAY)
 import crypto from "crypto";
 global.crypto = crypto.webcrypto;
 
-// ===== IMPORTS =====
+// 📦 IMPORTS
 import express from "express";
 import Pino from "pino";
 import {
@@ -11,7 +11,7 @@ import {
   DisconnectReason
 } from "@whiskeysockets/baileys";
 
-// ===== SERVIDOR WEB (Railway lo necesita) =====
+// 🌐 WEB SERVER (Railway / UptimeRobot)
 const app = express();
 const PORT = process.env.PORT || 8080;
 
@@ -20,70 +20,62 @@ app.get("/", (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log("🌐 Servidor web activo en puerto", PORT);
+  console.log("🌍 Servidor web activo en puerto", PORT);
 });
 
-// ===== BOT WHATSAPP =====
+// 🚀 INICIAR BOT
 async function iniciarBot() {
   const { state, saveCreds } = await useMultiFileAuthState("./session");
 
   const sock = makeWASocket({
     logger: Pino({ level: "silent" }),
     auth: state,
-    printQRInTerminal: false // NO QR
+    printQRInTerminal: false
   });
 
-  // 🔴 CAMBIÁ ESTE NÚMERO POR EL TUYO
-  // 👉 Código país + número, SIN + ni espacios
-  const numero = "595993633752";
-
-  // Generar código de vinculación
-  setTimeout(async () => {
-    try {
-      const code = await sock.requestPairingCode(numero);
-      console.log("📲 CÓDIGO DE VINCULACIÓN:", code);
-    } catch (err) {
-      console.error("❌ Error al generar código:", err);
-    }
-  }, 3000);
-
-  // Guardar sesión
+  // 💾 GUARDAR SESIÓN
   sock.ev.on("creds.update", saveCreds);
 
-  // Estado de conexión
-  sock.ev.on("connection.update", (update) => {
+  let codigoGenerado = false;
+
+  // 🔌 CONEXIÓN
+  sock.ev.on("connection.update", async (update) => {
     const { connection, lastDisconnect } = update;
 
     if (connection === "open") {
-      console.log("✅ BOT CONECTADO A WHATSAPP");
+      console.log("✅ WhatsApp conectado correctamente");
+      codigoGenerado = true; // ya no generar más códigos
     }
 
     if (connection === "close") {
       const reason =
-        lastDisconnect?.error?.output?.statusCode !==
-        DisconnectReason.loggedOut;
+        lastDisconnect?.error?.output?.statusCode;
 
-      console.log("⚠️ Conexión cerrada, reconectando...");
-      if (reason) iniciarBot();
+      console.log("⚠️ Conexión cerrada. Razón:", reason);
+
+      if (reason !== DisconnectReason.loggedOut) {
+        iniciarBot();
+      } else {
+        console.log("❌ Sesión cerrada. Borra ./session y vuelve a vincular.");
+      }
     }
   });
 
-  // ===== EJEMPLO DE MENSAJE =====
-  sock.ev.on("messages.upsert", async ({ messages }) => {
-    const msg = messages[0];
-    if (!msg.message || msg.key.fromMe) return;
+  // 🔐 GENERAR UN SOLO CÓDIGO
+  setTimeout(async () => {
+    if (codigoGenerado) return;
 
-    const texto =
-      msg.message.conversation ||
-      msg.message.extendedTextMessage?.text;
+    try {
+      const numero = "595993633752"; // 👈 TU NÚMERO (sin + ni espacios)
+      const code = await sock.requestPairingCode(numero);
 
-    if (texto?.toLowerCase() === "hola") {
-      await sock.sendMessage(msg.key.remoteJid, {
-        text: "👋 Hola, soy ★VĮŁŁĄŁƁĄ★ bot 🤖"
-      });
+      console.log("📲 CÓDIGO DE VINCULACIÓN:", code);
+      console.log("⏳ Ingrésalo en WhatsApp → Dispositivos vinculados");
+    } catch (err) {
+      console.error("❌ Error al generar código:", err.message);
     }
-  });
+  }, 3000);
 }
 
-// ===== INICIAR =====
+// ▶️ START
 iniciarBot();
