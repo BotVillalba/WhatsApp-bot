@@ -8,20 +8,19 @@ const express = require("express");
 const pino = require("pino");
 
 const PORT = process.env.PORT || 8080;
-const NUMERO_WHATSAPP = "595993633752"; // 👈 TU NÚMERO SIN +
+const NUMERO_WHATSAPP = "595993633752"; // TU NÚMERO SIN +
 
 let codigoGenerado = false;
+let yaConectado = false;
 
 // =======================
 // SERVIDOR WEB
 // =======================
 const app = express();
-app.get("/", (_, res) => {
-  res.send("🤖 Bot activo");
-});
-app.listen(PORT, () => {
-  console.log("🌐 Servidor web activo en puerto", PORT);
-});
+app.get("/", (_, res) => res.send("🤖 Bot activo"));
+app.listen(PORT, () =>
+  console.log("🌐 Servidor web activo en puerto", PORT)
+);
 
 // =======================
 // BOT
@@ -42,6 +41,7 @@ async function iniciarBot() {
     const { connection, lastDisconnect } = update;
 
     if (connection === "open") {
+      yaConectado = true;
       console.log("✅ WhatsApp conectado correctamente");
       return;
     }
@@ -50,11 +50,18 @@ async function iniciarBot() {
       const reason = lastDisconnect?.error?.output?.statusCode;
       console.log("⚠️ Conexión cerrada. Razón:", reason);
 
+      // 🚫 NO reconectar si aún no se vinculó
+      if (!yaConectado && !state.creds.registered) {
+        console.log("🛑 Esperando vinculación manual...");
+        return;
+      }
+
+      // 🔁 Reconectar solo si no fue logout
       if (reason !== DisconnectReason.loggedOut) {
         console.log("🔁 Reintentando conexión...");
         iniciarBot();
       } else {
-        console.log("🛑 Sesión cerrada manualmente");
+        console.log("🛑 Sesión cerrada desde WhatsApp");
       }
     }
   });
@@ -67,7 +74,7 @@ async function iniciarBot() {
 
     try {
       const code = await sock.requestPairingCode(NUMERO_WHATSAPP);
-      console.log("📱 CÓDIGO DE VINCULACIÓN ÚNICO:", code);
+      console.log("📱 CÓDIGO DE VINCULACIÓN:", code);
       console.log("👉 WhatsApp > Dispositivos vinculados");
     } catch (err) {
       console.error("❌ Error al generar código:", err.message);
