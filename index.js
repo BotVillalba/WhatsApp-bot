@@ -1,3 +1,7 @@
+// 🔐 FIX crypto para Node 18+
+const crypto = require("crypto");
+global.crypto = crypto;
+
 const {
   default: makeWASocket,
   useMultiFileAuthState,
@@ -8,22 +12,22 @@ const express = require("express");
 const pino = require("pino");
 
 const PORT = process.env.PORT || 8080;
-const NUMERO_WHATSAPP = "595993633752"; // TU NÚMERO SIN +
+const NUMERO_WHATSAPP = "595993633752"; // 👉 TU NÚMERO SIN +
 
 let codigoGenerado = false;
 let yaConectado = false;
 
 // =======================
-// SERVIDOR WEB
+// SERVIDOR WEB (Railway)
 // =======================
 const app = express();
 app.get("/", (_, res) => res.send("🤖 Bot activo"));
-app.listen(PORT, () =>
-  console.log("🌐 Servidor web activo en puerto", PORT)
-);
+app.listen(PORT, () => {
+  console.log("🌐 Servidor web activo en puerto", PORT);
+});
 
 // =======================
-// BOT
+// BOT WHATSAPP
 // =======================
 async function iniciarBot() {
   const { state, saveCreds } = await useMultiFileAuthState("./session");
@@ -50,13 +54,12 @@ async function iniciarBot() {
       const reason = lastDisconnect?.error?.output?.statusCode;
       console.log("⚠️ Conexión cerrada. Razón:", reason);
 
-      // 🚫 NO reconectar si aún no se vinculó
+      // 🚫 NO reconectar antes de vincular
       if (!yaConectado && !state.creds.registered) {
         console.log("🛑 Esperando vinculación manual...");
         return;
       }
 
-      // 🔁 Reconectar solo si no fue logout
       if (reason !== DisconnectReason.loggedOut) {
         console.log("🔁 Reintentando conexión...");
         iniciarBot();
