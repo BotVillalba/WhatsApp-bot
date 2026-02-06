@@ -1,11 +1,13 @@
-import makeWASocket, {
-  useMultiFileAuthState,
-  DisconnectReason
-} from "@whiskeysockets/baileys";
+import pkg from "@whiskeysockets/baileys";
 import P from "pino";
 
+const {
+  default: makeWASocket,
+  useMultiFileAuthState,
+  DisconnectReason
+} = pkg;
+
 async function startBot() {
-  // Carpeta de sesión
   const { state, saveCreds } = await useMultiFileAuthState("./auth");
 
   const sock = makeWASocket({
@@ -17,13 +19,13 @@ async function startBot() {
   // Guardar sesión
   sock.ev.on("creds.update", saveCreds);
 
-  // Estado de conexión
+  // Conexión
   sock.ev.on("connection.update", (update) => {
     const { connection, lastDisconnect, pairingCode } = update;
 
     if (pairingCode) {
       console.log("\n==============================");
-      console.log("🔑 CÓDIGO DE VINCULACIÓN:");
+      console.log("🔑 CÓDIGO DE VINCULACIÓN (8 dígitos):");
       console.log("👉", pairingCode);
       console.log("==============================\n");
       console.log("📱 WhatsApp > Dispositivos vinculados > Vincular con número");
@@ -44,7 +46,7 @@ async function startBot() {
     }
   });
 
-  // Mensaje de prueba
+  // Mensaje simple de prueba
   sock.ev.on("messages.upsert", async ({ messages }) => {
     const msg = messages[0];
     if (!msg.message || msg.key.fromMe) return;
@@ -53,9 +55,9 @@ async function startBot() {
       msg.message.conversation ||
       msg.message.extendedTextMessage?.text;
 
-    if (text === "hola") {
+    if (text?.toLowerCase() === "hola") {
       await sock.sendMessage(msg.key.remoteJid, {
-        text: "👋 Hola, el bot está funcionando correctamente."
+        text: "👋 Hola, el bot ★VĮŁŁĄŁƁĄ★ está activo."
       });
     }
   });
