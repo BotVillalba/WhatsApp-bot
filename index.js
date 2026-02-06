@@ -1,8 +1,11 @@
-import makeWASocket, {
+import baileys from "@whiskeysockets/baileys";
+import P from "pino";
+
+const {
+  default: makeWASocket,
   useMultiFileAuthState,
   DisconnectReason
-} from "@whiskeysockets/baileys";
-import P from "pino";
+} = baileys;
 
 let sock;
 let isConnecting = false;
@@ -20,18 +23,15 @@ async function startBot() {
     browser: ["★VĮŁŁĄŁƁĄ★", "Chrome", "1.0"]
   });
 
-  // 🔑 Código de 8 dígitos SOLO si no está registrado
   if (!state.creds.registered) {
-    const phoneNumber = process.env.PHONE_NUMBER;595993633752 // ej: 5959XXXXXXXX
+    const phoneNumber = process.env.PHONE_NUMBER;595993633752
     const code = await sock.requestPairingCode(phoneNumber);
     console.log("🔑 CÓDIGO DE VINCULACIÓN:", code);
   }
 
   sock.ev.on("creds.update", saveCreds);
 
-  sock.ev.on("connection.update", (update) => {
-    const { connection, lastDisconnect } = update;
-
+  sock.ev.on("connection.update", ({ connection, lastDisconnect }) => {
     if (connection === "open") {
       console.log("✅ WhatsApp conectado correctamente");
       isConnecting = false;
@@ -41,7 +41,7 @@ async function startBot() {
       const reason = lastDisconnect?.error?.output?.statusCode;
 
       if (reason === DisconnectReason.loggedOut) {
-        console.log("❌ Sesión cerrada. Borrando auth...");
+        console.log("❌ Sesión cerrada");
         isConnecting = false;
       } else {
         console.log("🔄 Reconectando en 5 segundos...");
